@@ -1,0 +1,7 @@
+mistralai
+numpy
+ollama>=0.5.4
+openai
+pillow
+torch
+pydantic
