@@ -232,7 +232,23 @@ def grounding(
     # responses: <bbox>0 55 63 250</bbox><bbox>0 300 51 427</bbox>...
     bboxes: list[list[int]] = []
     for bbox in re.findall(r"<bbox>(.*?)</bbox>", response):
-        bboxes.append([int(x) for x in bbox.split()])
+        # seed 1.6
+        bbox = [int(x) for x in bbox.split()]
+        if len(bbox) != 4:
+            raise ValueError("BBox is invaild. Please retry again.")
+        x_min, y_min, x_max, y_max = tuple(bbox)
+        w, h = image.size
+        x_min_real = int(x_min * w / 1000)
+        y_min_real = int(y_min * h / 1000)
+        x_max_real = int(x_max * w / 1000)
+        y_max_real = int(y_max * h / 1000)
+
+        bbox_x = x_min_real
+        bbox_y = y_min_real
+        bbox_w = x_max_real - x_min_real
+        bbox_h = y_max_real - y_min_real
+
+        bboxes.append([bbox_x, bbox_y, bbox_w, bbox_h])
 
     # Create a copy of the image to draw on
     draw_image = image.copy()
@@ -247,6 +263,7 @@ def grounding(
         if len(bbox) == 4:  # Ensure bbox has 4 coordinates [x1, y1, x2, y2]
             x1, y1, x2, y2 = bbox
             # Draw rectangle
-            draw.rectangle([x1, y1, x2, y2], outline=bbox_color, width=bbox_width)
+            # Pillow uses [x1, x2, x3, x4]
+            draw.rectangle([x1, y1, x1 + x2, y1 + y2], outline=bbox_color, width=bbox_width)
 
     return bboxes, draw_image
