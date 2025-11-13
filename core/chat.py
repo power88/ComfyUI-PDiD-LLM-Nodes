@@ -11,6 +11,7 @@ from typing import Optional, Literal, Tuple
 from PIL import Image, ImageDraw
 from ollama import Client as Ollama
 from openai import OpenAIError
+from regex import B
 
 from .model_clients import ClientInfo
 from .utils import pil_to_base64
@@ -136,7 +137,7 @@ def chat_completion(
                         "content": [
                             {"type": "input_text", "text": user_prompt},
                             *[
-                                {"type": "input_image", "image_url": {"url": base64_image}}
+                                {"type": "input_image", "image_url": base64_image}
                                 for base64_image in base64_images
                             ],
                         ],
