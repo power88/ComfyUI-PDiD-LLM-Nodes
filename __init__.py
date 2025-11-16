@@ -8,7 +8,7 @@ from torch import Tensor
 from PIL import Image
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, io
-from .core.chat import chat_completion, grounding, ExtraParameters
+from .core.chat import chat_completion, grounding, captioning, ExtraParameters
 from .core.utils import tensor_to_pil, pil_to_tensor
 from .core.model_clients import init_client, ClientInfo
 
@@ -204,7 +204,10 @@ class ChatViaAPI(io.ComfyNode):
                 io.Boolean.Input(
                     "unload_model_after_chat",
                     default=True,
-                    tooltip="Whether to unload the LLM model after the chat. Only Ollama is supported.",
+                    tooltip=(
+                        "Whether to unload the LLM model after the chat. "
+                        + "Only Ollama is supported."
+                    ),
                 ),
                 io.Custom("EXTRA_PARAMETERS").Input(
                     "extra_parameters",
@@ -281,7 +284,10 @@ class GenerateBBOX(io.ComfyNode):
                 io.Boolean.Input(
                     "unload_model_after_chat",
                     default=True,
-                    tooltip="Whether to unload the LLM model after the chat. Only Ollama is supported.",
+                    tooltip=(
+                        "Whether to unload the LLM model after the chat. "
+                        + "Only Ollama is supported."
+                    ),
                 ),
                 io.Image.Input(
                     "image",
@@ -318,13 +324,90 @@ class GenerateBBOX(io.ComfyNode):
         return io.NodeOutput(response, result_image)
 
 
+class Capotion(io.ComfyNode):
+    """
+    Generate bboxes based on LLM's grounding abitility.
+    """
+
+    @classmethod
+    def define_schema(cls) -> io.Schema:
+        """
+        Tell the main program the metadata, input, output parameters of nodes.
+        """
+        return io.Schema(
+            node_id="GenerateBBOXViaAPI",
+            display_name="Generate BBOXes",
+            category="LLM",
+            inputs=[
+                io.Custom("CLIENT_INFO").Input(
+                    "client_info",
+                    tooltip="The LLM client info.",
+                ),
+                io.String.Input(
+                    "language",
+                    default="English",
+                    tooltip="The language of the caption.",
+                ),
+                io.Boolean.Input(
+                    "unload_model_after_chat",
+                    default=True,
+                    tooltip=(
+                        "Whether to unload the LLM model after the chat. "
+                        + "Only Ollama is supported."
+                    ),
+                ),
+                io.Image.Input(
+                    "image",
+                    tooltip="The image for the LLM model.",
+                ),
+                io.Custom("EXTRA_PARAMETERS").Input(
+                    "extra_parameters",
+                    tooltip="The extra parameters for the LLM model.",
+                    optional=True,
+                ),
+            ],
+            outputs=[
+                io.String.Output(display_name="Caption"),
+            ],
+        )
+
+    @classmethod
+    def execute(
+        cls,
+        client_info: ClientInfo,
+        language: str,
+        unload_model_after_chat: bool,
+        image: Tensor,
+        extra_parameters: Optional[ExtraParameters] = None,
+    ) -> io.NodeOutput:
+        """
+        Generate bboxes based on LLM's grounding abitility.
+        """
+        pil_image: Image.Image = tensor_to_pil(image)
+
+        payload = {
+            "client_info": client_info,
+            "language": language,
+            "image": pil_image,
+            "unload_after_chat": unload_model_after_chat,
+        }
+
+        if extra_parameters is not None:
+            payload["thinking"] = extra_parameters.thinking
+            payload["mode"] = extra_parameters.reasoning_effort
+
+        response = captioning(**payload)
+
+        return io.NodeOutput(response)
+
+
 class PDIDLLMNodes(ComfyExtension):
     """
     Define ComfyUI nodes.
     """
 
     @override
-    async def get_node_list(self) -> list[type[io.ComfyNode]]:
+    async def get_node_list(self) -> list[type[io.ComfyNode]]:  # type: ignore[override]
         """
         Get the list of nodes.
         """
