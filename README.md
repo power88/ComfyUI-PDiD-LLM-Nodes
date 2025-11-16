@@ -29,8 +29,10 @@ This node load LLMs or VLMs for use. Supports many clients.
 - Openai-compatible responses client (Which OpenAI strongly recommend)
 - Ollama client
 - Mistralai client.
+- Anthropic client.
 
-> I cannot make sure that Anthropic client works well because I cannot reach any Anthropic services in my country. But it works on modelscope on Anthropic client.
+
+> I cannot make sure that Anthropic client works well because I cannot reach any Anthropic services in my country. But it works with modelscope on Anthropic client.
 
 ### Extra Parameters
 
