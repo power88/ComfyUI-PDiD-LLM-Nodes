@@ -75,6 +75,12 @@ About `num_max_sentences`:
 
 > If you want to use it to make caption for training or finetuning. These are also accepted. 
 
+## Install
+
+> Make sure you are using ComfyUI Version 0.3.51 and above.
+
+Just install it by searching `ComfyUI-PDiD-LLM-Nodes` in `ComfyUI-Manager`
+
 
 ## Contributing
 
