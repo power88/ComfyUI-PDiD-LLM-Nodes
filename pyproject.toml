@@ -1,0 +1,22 @@
+[project]
+name = "comfyui-pdid-llm-nodes"
+description = "A group of nodes to call LLM api to do something."
+version = "0.1.0"
+license = {file = "LICENSE"} 
+classifiers = ["Operating System :: OS Independent",]
+
+dependencies = ["mistralai", "numpy", "ollama>=0.5.4", "openai", "pillow", "torch", "pydantic"]
+
+[project.urls]
+Repository = "https://github.com/power88/ComfyUI-PDiD-LLM-Nodes"
+#  Used by Comfy Registry https://registry.comfy.org
+Documentation = "https://github.com/power88/ComfyUI-PDiD-LLM-Nodes/wiki"
+"Bug Tracker" = "https://github.com/power88/ComfyUI-PDiD-LLM-Nodes/issues"
+
+[tool.comfy]
+PublisherId = "playdustindb"
+DisplayName = "ComfyUI-PDiD-LLM-Nodes"
+Icon = ""
+includes = [] 
+"requires-comfyui" = ">=0.3.51"  # V3 Schema
+
