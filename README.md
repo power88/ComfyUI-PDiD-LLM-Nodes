@@ -30,7 +30,7 @@ This node load LLMs or VLMs for use. Supports many clients.
 - Ollama client
 - Mistralai client.
 
-> I cannot make sure that Anthropic client works well because I cannot reach any Anthropic services in my country. 
+> I cannot make sure that Anthropic client works well because I cannot reach any Anthropic services in my country. But it works on modelscope on Anthropic client.
 
 ### Extra Parameters
 
@@ -91,7 +91,7 @@ Any contributions on this repostory are welcome. (Especially about Anthropic nod
 ### Clients
 
 - [x] OpenAI client support.
-- [ ] Anthropic client support.  
+- [x] Anthropic client support.  
 - [x] Ollama client support.
 - [x] Mistralai client support.
 - [ ] ComfyUI Clip client support.
@@ -101,6 +101,7 @@ Any contributions on this repostory are welcome. (Especially about Anthropic nod
 - [x] Chat
 - [x] Generate bbox
 - [x] Generate Caption
+- [ ] Custom context.
 
 ## Licence
 
