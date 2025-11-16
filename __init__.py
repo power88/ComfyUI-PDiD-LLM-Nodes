@@ -324,7 +324,7 @@ class GenerateBBOX(io.ComfyNode):
         return io.NodeOutput(response, result_image)
 
 
-class Capotion(io.ComfyNode):
+class Caption(io.ComfyNode):
     """
     Generate bboxes based on LLM's grounding abitility.
     """
@@ -335,8 +335,8 @@ class Capotion(io.ComfyNode):
         Tell the main program the metadata, input, output parameters of nodes.
         """
         return io.Schema(
-            node_id="GenerateBBOXViaAPI",
-            display_name="Generate BBOXes",
+            node_id="CaptionViaAPI",
+            display_name="Captioner",
             category="LLM",
             inputs=[
                 io.Custom("CLIENT_INFO").Input(
@@ -411,7 +411,7 @@ class PDIDLLMNodes(ComfyExtension):
         """
         Get the list of nodes.
         """
-        return [LLMLoader, ExtraParametersComfy, ChatViaAPI, GenerateBBOX]
+        return [LLMLoader, ExtraParametersComfy, ChatViaAPI, GenerateBBOX, Caption]
 
 
 async def comfy_entrypoint() -> ComfyExtension:

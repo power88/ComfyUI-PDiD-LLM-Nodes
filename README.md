@@ -78,7 +78,7 @@ Any contributions on this repostory are welcome. (Especially about Anthropic nod
 
 - [x] Chat
 - [x] Generate bbox
-- [ ] Generate Caption
+- [x] Generate Caption
 
 ## Licence
 
