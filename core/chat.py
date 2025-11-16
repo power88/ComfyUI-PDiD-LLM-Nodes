@@ -78,10 +78,9 @@ def chat_completion(
         },
     ]
     # prepare the arguments
-    # Due to ollama issue (Cannot unload model using openai chat api.). We have to generate a single payload here.
+    # Due to ollama issue (Cannot unload model using openai chat api.).
+    # We have to generate a single payload here.
     if client_info.client_type == "ollama":
-        # ACPCat5173: WHY OLLAMA HAVE TO WRITE A SPECIAL FORMAT ON THEIR OWN??? I WILL NOT USE IT IN THE FUTURE ANYMORE.
-        # WHY NOT USE OPENAI CHAT COMPTITABLE API? BECAUSE WE CANNOT UNLOAD MODEL ON CHAT COMPTITABLE API!
         payload = {
             "model": orig_args.model,
             "messages": [
@@ -211,7 +210,8 @@ def grounding(
     # prepare the prompt
     system_prompt = "You are a professional image grounding assistant."
     user_prompt = (
-        f"Please locate the item '{item}' in the image accurately. Response in coordinate of the bounding box. "
+        f"Please locate the item '{item}' in the image accurately. "
+        + "Response in coordinate of the bounding box. "
         + "The format is <bbox>x_min y_min x_max y_max</bbox> in percentage(0-1000). "
         + "If there are multiple items, please list all bounding boxes. "
     )

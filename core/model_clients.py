@@ -65,16 +65,16 @@ def init_client(
     )
     # Configure the function
     if client_type == "openai":
-        chat_func: Callable = base_client.chat.completions.create
+        chat_func: Callable = base_client.chat.completions.create  # type: ignore
 
     elif client_type == "openai-responses":
-        chat_func: Callable = base_client.responses.create
+        chat_func: Callable = base_client.responses.create  # type: ignore
 
     elif client_type == "mistral":
-        chat_func: Callable = base_client.chat.complete
+        chat_func: Callable = base_client.chat.complete  # type: ignore
 
     elif client_type == "ollama":
-        chat_func: Callable = base_client.chat
+        chat_func: Callable = base_client.chat  # type: ignore
 
     else:
         raise ValueError("The client is not supported")
