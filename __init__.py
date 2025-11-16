@@ -62,7 +62,7 @@ class LLMLoader(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.Custom("CLIENT_INFO").Output("client_info"),
+                io.Custom("CLIENT_INFO").Output(display_name="client_info"),
             ],
         )
 
@@ -115,7 +115,7 @@ class ExtraParametersComfy(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.Custom("EXTRA_PARAMETERS").Output(),
+                io.Custom("EXTRA_PARAMETERS").Output(display_name="extra_parameters"),
             ],
         )
 
@@ -213,7 +213,7 @@ class ChatViaAPI(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.String("response").Output(),
+                io.String.Output(display_name="response"),
             ],
         )
 
@@ -289,8 +289,8 @@ class GenerateBBOX(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.Custom("BBOX").Output(),
-                io.Image("BBoxPreviewImage").Output(),
+                io.Custom("BBOX").Output(display_name="bbox"),
+                io.Image.Output(display_name="BBoxPreviewImage"),
             ],
         )
 
