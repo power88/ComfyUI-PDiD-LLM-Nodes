@@ -1,11 +1,11 @@
 [project]
 name = "comfyui-pdid-llm-nodes"
 description = "A group of nodes to call LLM api to do something."
-version = "0.1.1"
+version = "0.1.2"
 license = {file = "LICENSE"} 
 classifiers = ["Operating System :: OS Independent",]
 
-dependencies = ["mistralai", "numpy", "ollama>=0.5.4", "openai", "pillow", "torch", "pydantic"]
+dependencies = ["mistralai", "numpy", "ollama>=0.5.4", "openai", "pillow", "torch", "pydantic", "anthropic"]
 
 [project.urls]
 Repository = "https://github.com/power88/ComfyUI-PDiD-LLM-Nodes"
