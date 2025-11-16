@@ -192,7 +192,6 @@ def chat_completion(
             raise ValueError(
                 "The message type is not supported. You are using Anthropic?"
             )
-
     return response
 
 
@@ -213,7 +212,11 @@ def grounding(
 
     # prepare the prompt
     system_prompt = "You are a professional image grounding assistant."
-    user_prompt = f"Please locate the item '{item}' in the image accurately. Response in coordinate of the bounding box."
+    user_prompt = (
+        f"Please locate the item '{item}' in the image accurately. Response in coordinate of the bounding box. "
+        + "The format is <bbox>x_min y_min x_max y_max</bbox> in percentage(0-1000). "
+        + "If there are multiple items, please list all bounding boxes. "
+    )
 
     # prepare the extra parameters
     extra_parameters = ExtraParameters(thinking=thinking, reasoning_effort=mode)
