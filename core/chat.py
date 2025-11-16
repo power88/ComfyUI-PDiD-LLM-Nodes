@@ -272,3 +272,61 @@ def grounding(
             )
 
     return bboxes, draw_image
+
+
+def captioning(
+    client_info: ClientInfo,
+    image: Image.Image,
+    language: str = "English",
+    thinking: Literal["disabled", "enabled"] = "disabled",
+    mode: Literal["minimal", "low", "medium", "high"] = "minimal",
+    unload_after_chat: bool = True,
+) -> str:
+    """
+    Image captioning.
+    """
+
+    # Captioning prompt based on Qwen-Image arxiv paper.
+    # https://arxiv.org/pdf/2508.02324
+    # Figure 12 in Page 13.
+    # Modified by Deepseek-V3.2-Exp to remove unused json format.
+    # Better for using thinking mode with "enabled" and "medium" reasoning_effort.
+    system_prompt = (
+        "As a professional image annotator, "
+        + "your primary task is to generate a detailed and natural caption for the input image, "
+        + "focusing on authenticity and accuracy without any generalizations. "
+        + "Write the caption in descriptive, flowing text, "
+        + "avoiding structured formats or rich text elements. "
+        + "Enrich the description by including specific object attributes, "
+        + "visual relationships between objects, and environmental context "
+        + "to provide a comprehensive view. "
+        + "If any text is visible in the image, identify it exactly as seen "
+        + "and highlight it within the caption using quotation marks, "
+        + "without translating or explaining the content. "
+        + "Ensure all details are grounded in what is actually present, "
+        + "maintaining a truthful representation of the scene. "
+        + "This approach guarantees a clear and informative caption "
+        + "that captures the essence of the image effectively."
+    )
+    user_prompt = (
+        "Here's the user's input. "
+        + f"Please generate a detailed caption for the image in language {language}."
+    )
+
+    # prepare the extra parameters
+    extra_parameters = ExtraParameters(thinking=thinking, reasoning_effort=mode)
+
+    # call the API
+    response: str = chat_completion(
+        client_info=client_info,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        images=[image],
+        temperature=1.0,
+        top_p=0.7,
+        max_tokens=4096,
+        unload_after_chat=unload_after_chat,
+        extra_parameters=extra_parameters,
+    )
+
+    return response
