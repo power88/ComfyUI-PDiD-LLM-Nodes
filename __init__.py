@@ -62,7 +62,7 @@ class LLMLoader(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.Custom("CLIENT_INFO").Output("client_info"),
+                io.Custom("CLIENT_INFO").Output(display_name="client_info"),
             ],
         )
 
@@ -84,6 +84,7 @@ class LLMLoader(io.ComfyNode):
             model=model_name,
         )
         return io.NodeOutput(client_info)
+
 
 class ExtraParametersComfy(io.ComfyNode):
     """
@@ -114,7 +115,7 @@ class ExtraParametersComfy(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.Custom("EXTRA_PARAMETERS").Output("extra_parameters"),
+                io.Custom("EXTRA_PARAMETERS").Output(display_name="extra_parameters"),
             ],
         )
 
@@ -130,6 +131,7 @@ class ExtraParametersComfy(io.ComfyNode):
         return io.NodeOutput(
             ExtraParameters(thinking=thinking, reasoning_effort=reasoning_effort)
         )
+
 
 class ChatViaAPI(io.ComfyNode):
     """
@@ -211,7 +213,7 @@ class ChatViaAPI(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.String.Output("response"),
+                io.String.Output(display_name="response"),
             ],
         )
 
@@ -251,6 +253,7 @@ class ChatViaAPI(io.ComfyNode):
         )
         return io.NodeOutput(response)
 
+
 class GenerateBBOX(io.ComfyNode):
     """
     Generate bboxes based on LLM's grounding abitility.
@@ -286,11 +289,10 @@ class GenerateBBOX(io.ComfyNode):
                 ),
             ],
             outputs=[
-                io.Custom("BBOX").Output("bboxes"),
-                io.Image.Output("BBoxImage"),
+                io.Custom("BBOX").Output(display_name="bbox"),
+                io.Image.Output(display_name="BBoxPreviewImage"),
             ],
         )
-
 
     @classmethod
     def execute(
@@ -300,18 +302,21 @@ class GenerateBBOX(io.ComfyNode):
         unload_model_after_chat: bool,
         image: Tensor,
     ) -> io.NodeOutput:
-
+        """
+        Generate bboxes based on LLM's grounding abitility.
+        """
         pil_image: Image.Image = tensor_to_pil(image)
 
         (response, bbox_image) = grounding(
             client_info=client_info,
             item=items,
             image=pil_image,
-            unload_after_chat=unload_model_after_chat
+            unload_after_chat=unload_model_after_chat,
         )
         # Convert bbox images to Tensor
         result_image: Tensor = pil_to_tensor(bbox_image)
         return io.NodeOutput(response, result_image)
+
 
 class PDIDLLMNodes(ComfyExtension):
     """
@@ -325,9 +330,8 @@ class PDIDLLMNodes(ComfyExtension):
         """
         return [LLMLoader, ExtraParametersComfy, ChatViaAPI, GenerateBBOX]
 
-async def comfy_entrypoint() -> (
-    ComfyExtension
-):
+
+async def comfy_entrypoint() -> ComfyExtension:
     """
     Register ComfyUI nodes.
     """

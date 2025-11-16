@@ -9,9 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, Literal, Tuple
 from PIL import Image, ImageDraw
-from ollama import Client as Ollama
 from openai import OpenAIError
-from regex import B
 
 from .model_clients import ClientInfo
 from .utils import pil_to_base64
@@ -59,21 +57,21 @@ def chat_completion(
     base64_images = [pil_to_base64(image) for image in images]
     orig_args = client_info.arguments
     messages: list[dict] = [
-                    {
-                        "role": "system",
-                        "content": system_prompt,
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_prompt},
-                            *[
-                                {"type": "image_url", "image_url": {"url": base64_image}}
-                                for base64_image in base64_images
-                            ],
-                        ],
-                    },
-                ]
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": user_prompt},
+                *[
+                    {"type": "image_url", "image_url": {"url": base64_image}}
+                    for base64_image in base64_images
+                ],
+            ],
+        },
+    ]
     # prepare the arguments
     # Due to ollama issue (Cannot unload model using openai chat api.). We have to generate a single payload here.
     match client_info.client_type:
@@ -90,14 +88,14 @@ def chat_completion(
                     {
                         "role": "user",
                         "content": user_prompt,
-                        "images": [ base64_image for base64_image in base64_images ]
+                        "images": [base64_image for base64_image in base64_images],
                     },
                 ],
                 "options": {
                     "temperature": temperature,
                     "top_p": top_p,
                     "top_k": top_k,
-                    "num_predict": max_tokens
+                    "num_predict": max_tokens,
                 },
             }
             if extra_parameters:
@@ -116,13 +114,15 @@ def chat_completion(
                 "messages": messages,
                 "temperature": temperature,
                 "top_p": top_p,
-                "max_tokens": max_tokens
+                "max_tokens": max_tokens,
             }
             if extra_parameters:
                 if extra_parameters.thinking == "enabled":
                     if "seed-1-6" in orig_args["model"]:
                         payload["extra_body"] = {}
-                        payload["extra_body"]["thinking"] = {"type": extra_parameters.thinking}
+                        payload["extra_body"]["thinking"] = {
+                            "type": extra_parameters.thinking
+                        }
                     payload["reasoning_effort"] = extra_parameters.reasoning_effort
         case "openai-responses":
             payload = {
@@ -145,12 +145,14 @@ def chat_completion(
                 ],
                 "temperature": temperature,
                 "top_p": top_p,
-                "max_output_tokens": max_tokens
+                "max_output_tokens": max_tokens,
             }
             if extra_parameters:
                 if "seed-1-6" in orig_args["model"]:
                     payload["extra_body"] = {}
-                    payload["extra_body"]["thinking"] = {"type": extra_parameters.thinking}
+                    payload["extra_body"]["thinking"] = {
+                        "type": extra_parameters.thinking
+                    }
                 if "seed-1-6" not in orig_args["model"]:
                     # volcengine does not support thinking effort in responses api
                     payload["reasoning"] = {}
@@ -163,10 +165,12 @@ def chat_completion(
                 "temperature": temperature,
                 "top_p": top_p,
                 "top_k": top_k,
-                "max_tokens": max_tokens
+                "max_tokens": max_tokens,
             }
         case _:
-            raise ValueError("The client type is not supported. You are using Anthropic?")
+            raise ValueError(
+                "The client type is not supported. You are using Anthropic?"
+            )
 
     # Call the API
     try:
@@ -188,7 +192,6 @@ def chat_completion(
             raise ValueError(
                 "The message type is not supported. You are using Anthropic?"
             )
-
     return response
 
 
@@ -209,12 +212,14 @@ def grounding(
 
     # prepare the prompt
     system_prompt = "You are a professional image grounding assistant."
-    user_prompt = f"Please locate the item '{item}' in the image accurately. Response in coordinate of the bounding box."
+    user_prompt = (
+        f"Please locate the item '{item}' in the image accurately. Response in coordinate of the bounding box. "
+        + "The format is <bbox>x_min y_min x_max y_max</bbox> in percentage(0-1000). "
+        + "If there are multiple items, please list all bounding boxes. "
+    )
 
     # prepare the extra parameters
-    extra_parameters = ExtraParameters(
-        thinking=thinking, reasoning_effort=mode
-    )
+    extra_parameters = ExtraParameters(thinking=thinking, reasoning_effort=mode)
 
     # call the API
     response: str = chat_completion(
@@ -264,6 +269,8 @@ def grounding(
             x1, y1, x2, y2 = bbox
             # Draw rectangle
             # Pillow uses [x1, x2, x3, x4]
-            draw.rectangle([x1, y1, x1 + x2, y1 + y2], outline=bbox_color, width=bbox_width)
+            draw.rectangle(
+                [x1, y1, x1 + x2, y1 + y2], outline=bbox_color, width=bbox_width
+            )
 
     return bboxes, draw_image

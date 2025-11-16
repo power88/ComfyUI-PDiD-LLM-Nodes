@@ -18,7 +18,7 @@ class ClientInfo:
     A dataclass that configure client.
     """
 
-    client: Literal[OpenAI, Ollama, Mistral]
+    client: OpenAI | Ollama | Mistral
     client_type: Literal["openai", "openai-responses", "ollama", "mistral"]
     chat_func: Callable
     arguments: dict[str, str | list[dict[str, str]] | float | int]
