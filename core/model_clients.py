@@ -10,6 +10,7 @@ from openai import OpenAI
 
 from ollama import Client as Ollama
 from mistralai import Mistral
+from anthropic import Anthropic  # type: ignore
 
 
 @dataclass
@@ -31,14 +32,16 @@ class ClientInfo:
     A dataclass that configure client.
     """
 
-    client: OpenAI | Ollama | Mistral
-    client_type: Literal["openai", "openai-responses", "ollama", "mistral"]
+    client: OpenAI | Ollama | Mistral | Anthropic
+    client_type: Literal["openai", "openai-responses", "ollama", "mistral", "anthropic"]
     chat_func: Callable
     arguments: DetailedArguments
 
 
 def init_client(
-    client_type: Literal["openai", "openai-responses", "ollama", "mistral"],
+    client_type: Literal[
+        "openai", "openai-responses", "ollama", "mistral", "anthropic"
+    ],
     base_url: str,
     api_key: str,
     model: str,
@@ -53,6 +56,8 @@ def init_client(
         base_client = Ollama()
     elif client_type == "mistral":
         base_client = Mistral(api_key=api_key)
+    elif client_type == "anthropic":
+        base_client = Anthropic(base_url=base_url, api_key=api_key)
     else:
         raise ValueError("The client is not supported")
 
@@ -76,6 +81,8 @@ def init_client(
     elif client_type == "ollama":
         chat_func: Callable = base_client.chat  # type: ignore
 
+    elif client_type == "anthropic":
+        chat_func: Callable = base_client.messages.create  # type: ignore
     else:
         raise ValueError("The client is not supported")
 

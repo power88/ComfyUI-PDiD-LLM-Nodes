@@ -33,6 +33,18 @@ class ExtraParameters:
     )
 
 
+def parse_base64_image(base64_image):
+    """
+    Parse base64 image to dict with media_type and data for anthropic.
+    """
+    match = re.search(r"data:(image/[^;]+);base64,", base64_image)
+    return {
+        "type": "base64",
+        "media_type": match.group(1) if match else "image/jpeg",
+        "data": base64_image.split(",")[-1] if "," in base64_image else base64_image,
+    }
+
+
 def chat_completion(
     client_info: ClientInfo,
     system_prompt: str,
@@ -127,6 +139,7 @@ def chat_completion(
                         "type": extra_parameters.thinking
                     }
                 payload["reasoning_effort"] = extra_parameters.reasoning_effort
+
     elif client_info.client_type == "openai-responses":
         payload = {
             "model": orig_args.model,
@@ -169,8 +182,52 @@ def chat_completion(
             "top_k": top_k,
             "max_tokens": max_tokens,
         }
+
+    elif client_info.client_type == "anthropic":
+        anthropic_messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_prompt},
+                    *[
+                        {
+                            "type": "image",
+                            "source": parse_base64_image(base64_image),
+                        }
+                        for base64_image in base64_images
+                    ],
+                ],
+            },
+        ]
+        payload = {
+            "model": orig_args.model,
+            "system": [{"text": system_prompt, "type": "text"}],
+            "messages": anthropic_messages,
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "max_tokens": max_tokens,
+            "thinking": {"type": "disabled"},
+        }
+        if extra_parameters and extra_parameters.thinking == "enabled":
+            payload["thinking"] = {"type": extra_parameters.thinking}
+            if (
+                extra_parameters.reasoning_effort
+                and extra_parameters.reasoning_effort != "minimal"
+            ):
+                effort_token = {
+                    "low": 1024,
+                    "medium": 2048,
+                    "high": 4096,
+                }
+                payload["thinking"]["budget_tokens"] = effort_token.get(  # type: ignore
+                    extra_parameters.reasoning_effort, 1024
+                )
+            else:
+                payload["thinking"] = {"type": "disabled"}
+
     else:
-        raise ValueError("The client type is not supported. You are using Anthropic?")
+        raise ValueError("The client type is not supported.")
 
     # Call the API
     try:
@@ -187,8 +244,10 @@ def chat_completion(
         result: str = response.output_text
     elif client_info.client_type == "ollama":
         result: str = response.message.content
+    elif client_info.client_type == "anthropic":
+        result: str = response.content[0].text
     else:
-        raise ValueError("The message type is not supported. You are using Anthropic?")
+        raise ValueError("The message type is not supported.")
     return result
 
 

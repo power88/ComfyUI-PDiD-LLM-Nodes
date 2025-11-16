@@ -55,7 +55,13 @@ class LLMLoader(io.ComfyNode):
                 ),
                 io.Combo.Input(
                     "client_type",
-                    options=["openai", "openai-responses", "mistral", "ollama"],
+                    options=[
+                        "openai",
+                        "openai-responses",
+                        "mistral",
+                        "ollama",
+                        "anthropic",
+                    ],
                     default="openai",
                     tooltip="The type of the LLM client (OpenAI chat comptitable? or Mistral?).",
                     optional=True,
