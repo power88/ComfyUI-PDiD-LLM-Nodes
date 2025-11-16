@@ -60,6 +60,22 @@ A node to generate bboxes from an image.
 
 The bbox is competitable with some bbox nodes on `ComfyUI_LayerStyle`. You can use it with segment anything.
 
+### Captioner
+
+![Captioner Screenshot](./assets/Caption.png)
+
+A node to generate caption from a image. (Maxium 10 sentences.)
+
+You can specify the language to give a corresponding caption.
+
+About `num_max_sentences`:
+- Use 2 for CLIP-based model. (Such as SD-1.5 SDXL or CLIP part of the `ClipTextEncodeFlux`)
+- Use 4 for T5-based model or Qwen-VL model. (Such as t5xxl part of the `ClipTextEncodeFlux` or Qwen-Image)
+- Use 4 and above for Qwen-Image.
+
+> If you want to use it to make caption for training or finetuning. These are also accepted. 
+
+
 ## Contributing
 
 Any contributions on this repostory are welcome. (Especially about Anthropic nodes.)
@@ -78,7 +94,7 @@ Any contributions on this repostory are welcome. (Especially about Anthropic nod
 
 - [x] Chat
 - [x] Generate bbox
-- [ ] Generate Caption
+- [x] Generate Caption
 
 ## Licence
 

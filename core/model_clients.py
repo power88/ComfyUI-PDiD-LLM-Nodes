@@ -5,11 +5,24 @@ Cannot support Anthropic because this client cannot be tested on my country.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Literal, Optional
+from typing import Callable, Literal
 from openai import OpenAI
 
 from ollama import Client as Ollama
 from mistralai import Mistral
+
+
+@dataclass
+class DetailedArguments:
+    """
+    Detailed arguments for chat completion.
+    """
+
+    model: str
+    messages: list[dict[str, str]] | list[str]
+    temperature: float = 1.0
+    top_p: float = 0.95
+    top_k: int = 40
 
 
 @dataclass
@@ -21,8 +34,7 @@ class ClientInfo:
     client: OpenAI | Ollama | Mistral
     client_type: Literal["openai", "openai-responses", "ollama", "mistral"]
     chat_func: Callable
-    arguments: dict[str, str | list[dict[str, str]] | float | int]
-    message_type: Literal["messages", "input"]
+    arguments: DetailedArguments
 
 
 def init_client(
@@ -34,70 +46,44 @@ def init_client(
     """
     Init client and send to next node.
     """
-    base_client: Optional[OpenAI, Ollama, Mistral] = None
-
     # Configure the client.
-    match client_type:
-        case "openai" | "openai-responses":
-            base_client: OpenAI = OpenAI(base_url=base_url, api_key=api_key)
-        case "ollama":
-            base_client: Ollama = Ollama()
-        case "mistral":
-            base_client: Mistral = Mistral(api_key=api_key)
-        case _:
-            raise ValueError("The client is not supported")
+    if client_type in ["openai", "openai-responses"]:
+        base_client = OpenAI(base_url=base_url, api_key=api_key)
+    elif client_type == "ollama":
+        base_client = Ollama()
+    elif client_type == "mistral":
+        base_client = Mistral(api_key=api_key)
+    else:
+        raise ValueError("The client is not supported")
 
+    arguments: DetailedArguments = DetailedArguments(
+        model=model,
+        messages=[],
+        temperature=1.0,
+        top_p=0.95,
+        top_k=40,
+    )
     # Configure the function
-    match client_type:
-        case "openai":
-            arguments: dict[str, str | list[dict[str, str]] | float | int] = {
-                "model": model,
-                "messages": [],
-                "temperature": 1.0,
-                "top_p": 0.95,
-                "top_k": 40,
-            }
-            chat_func = base_client.chat.completions.create
+    if client_type == "openai":
+        chat_func: Callable = base_client.chat.completions.create  # type: ignore
 
-        case "openai-responses":
-            arguments: dict[str, str | list[dict[str, str]] | float | int] = {
-                "model": model,
-                "input": [],
-                "temperature": 1.0,
-                "top_p": 0.95,
-                "top_k": 40,
-            }
-            chat_func = base_client.responses.create
+    elif client_type == "openai-responses":
+        chat_func: Callable = base_client.responses.create  # type: ignore
 
-        case "mistral":
-            arguments: dict[str, str | list[dict[str, str]] | float | int] = {
-                "model": model,
-                "messages": [],
-                "temperature": 1.0,
-                "top_p": 0.95,
-                "top_k": 40,
-            }
-            chat_func = base_client.chat.complete
+    elif client_type == "mistral":
+        chat_func: Callable = base_client.chat.complete  # type: ignore
 
-        case "ollama":
-            arguments: dict[str, str | list[dict[str, str]] | float | int] = {
-                "model": model,
-                "messages": [],
-                "temperature": 1.0,
-                "top_p": 0.95,
-                "top_k": 40,
-            }
-            chat_func = base_client.chat
+    elif client_type == "ollama":
+        chat_func: Callable = base_client.chat  # type: ignore
 
-        case _:
-            raise ValueError("The client is not supported")
+    else:
+        raise ValueError("The client is not supported")
 
     result: ClientInfo = ClientInfo(
         client=base_client,
         client_type=client_type,
         chat_func=chat_func,
         arguments=arguments,
-        message_type="input" if "responses" in client_type else "messages",
     )
 
     return result

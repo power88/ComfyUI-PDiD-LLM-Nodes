@@ -5,14 +5,17 @@ Function 2: Image grounding.
 """
 
 import re
+from logging import getLogger
 
 from dataclasses import dataclass
 from typing import Optional, Literal, Tuple
 from PIL import Image, ImageDraw
 from openai import OpenAIError
 
-from .model_clients import ClientInfo
+from .model_clients import ClientInfo, DetailedArguments
 from .utils import pil_to_base64
+
+Logger = getLogger(__name__)
 
 
 @dataclass
@@ -34,7 +37,7 @@ def chat_completion(
     client_info: ClientInfo,
     system_prompt: str,
     user_prompt: str,
-    images: Optional[list[Image.Image]] = None,
+    images: list[Image.Image] | None = None,
     temperature: float = 1.0,
     top_p: float = 0.95,
     top_k: int = 40,
@@ -47,15 +50,17 @@ def chat_completion(
     """
     # Basic check of the user's input.
     if images is None:
-        images = []
-    if len(images) > 4:
-        print(
+        payload_images: list = []
+    elif len(images) > 4:
+        Logger.warning(
             "Warning: The number of images is greater than 4. Only the first 4 images will be used."
         )
-        images = images[:4]
+        payload_images: list = images[:4]
+    else:
+        payload_images: list = images
 
-    base64_images = [pil_to_base64(image) for image in images]
-    orig_args = client_info.arguments
+    base64_images: list[str] = [pil_to_base64(image) for image in payload_images]
+    orig_args: DetailedArguments = client_info.arguments
     messages: list[dict] = [
         {
             "role": "system",
@@ -73,104 +78,99 @@ def chat_completion(
         },
     ]
     # prepare the arguments
-    # Due to ollama issue (Cannot unload model using openai chat api.). We have to generate a single payload here.
-    match client_info.client_type:
-        case "ollama":
-            # ACPCat5173: WHY OLLAMA HAVE TO WRITE A SPECIAL FORMAT ON THEIR OWN??? I WILL NOT USE IT IN THE FUTURE ANYMORE.
-            # WHY NOT USE OPENAI CHAT COMPTITABLE API? BECAUSE WE CANNOT UNLOAD MODEL ON CHAT COMPTITABLE API!
-            payload = {
-                "model": orig_args["model"],
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": system_prompt,
-                    },
-                    {
-                        "role": "user",
-                        "content": user_prompt,
-                        "images": [base64_image for base64_image in base64_images],
-                    },
-                ],
-                "options": {
-                    "temperature": temperature,
-                    "top_p": top_p,
-                    "top_k": top_k,
-                    "num_predict": max_tokens,
+    # Due to ollama issue (Cannot unload model using openai chat api.).
+    # We have to generate a single payload here.
+    if client_info.client_type == "ollama":
+        payload = {
+            "model": orig_args.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt,
                 },
-            }
-            if extra_parameters:
-                # "minimal" thinking effect is not supported by ollama.
-                # but "minimal" thinking effect belong to no think is volcengine.
-                need_think = extra_parameters.thinking == "enabled"
-                payload["think"] = need_think
-                if need_think and extra_parameters.reasoning_effort != "minimal":
-                    payload["think"] = extra_parameters.reasoning_effort
-            if unload_after_chat:
-                payload["keep_alive"] = "0"
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                    "images": [base64_image for base64_image in base64_images],
+                },
+            ],
+            "options": {
+                "temperature": temperature,
+                "top_p": top_p,
+                "top_k": top_k,
+                "num_predict": max_tokens,
+            },
+        }
+        if extra_parameters:
+            # "minimal" thinking effect is not supported by ollama.
+            # but "minimal" thinking effect belong to no think is volcengine.
+            need_think = extra_parameters.thinking == "enabled"
+            payload["think"] = need_think
+            if need_think and extra_parameters.reasoning_effort != "minimal":
+                payload["think"] = extra_parameters.reasoning_effort
+        if unload_after_chat:
+            payload["keep_alive"] = "0"
 
-        case "openai":
-            payload = {
-                "model": orig_args["model"],
-                "messages": messages,
-                "temperature": temperature,
-                "top_p": top_p,
-                "max_tokens": max_tokens,
-            }
-            if extra_parameters:
-                if extra_parameters.thinking == "enabled":
-                    if "seed-1-6" in orig_args["model"]:
-                        payload["extra_body"] = {}
-                        payload["extra_body"]["thinking"] = {
-                            "type": extra_parameters.thinking
-                        }
-                    payload["reasoning_effort"] = extra_parameters.reasoning_effort
-        case "openai-responses":
-            payload = {
-                "model": orig_args["model"],
-                "input": [
-                    {
-                        "role": "system",
-                        "content": system_prompt,
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": user_prompt},
-                            *[
-                                {"type": "input_image", "image_url": base64_image}
-                                for base64_image in base64_images
-                            ],
-                        ],
-                    },
-                ],
-                "temperature": temperature,
-                "top_p": top_p,
-                "max_output_tokens": max_tokens,
-            }
-            if extra_parameters:
-                if "seed-1-6" in orig_args["model"]:
+    elif client_info.client_type == "openai":
+        payload = {
+            "model": orig_args.model,
+            "messages": messages,
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": max_tokens,
+        }
+        if extra_parameters:
+            if extra_parameters.thinking == "enabled":
+                if "seed-1-6" in orig_args.model:
                     payload["extra_body"] = {}
                     payload["extra_body"]["thinking"] = {
                         "type": extra_parameters.thinking
                     }
-                if "seed-1-6" not in orig_args["model"]:
-                    # volcengine does not support thinking effort in responses api
-                    payload["reasoning"] = {}
-                    payload["reasoning"]["effort"] = extra_parameters.reasoning_effort
+                payload["reasoning_effort"] = extra_parameters.reasoning_effort
+    elif client_info.client_type == "openai-responses":
+        payload = {
+            "model": orig_args.model,
+            "input": [
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": user_prompt},
+                        *[
+                            {"type": "input_image", "image_url": base64_image}
+                            for base64_image in base64_images
+                        ],
+                    ],
+                },
+            ],
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_output_tokens": max_tokens,
+        }
+        if extra_parameters:
+            model: str = orig_args.model
+            if "seed-1-6" in model:
+                payload["extra_body"] = {}
+                payload["extra_body"]["thinking"] = {"type": extra_parameters.thinking}
+            else:
+                # volcengine does not support thinking effort in responses api
+                payload["reasoning"] = {}
+                payload["reasoning"]["effort"] = extra_parameters.reasoning_effort
 
-        case "mistral":
-            payload = {
-                "model": orig_args["model"],
-                "messages": messages,
-                "temperature": temperature,
-                "top_p": top_p,
-                "top_k": top_k,
-                "max_tokens": max_tokens,
-            }
-        case _:
-            raise ValueError(
-                "The client type is not supported. You are using Anthropic?"
-            )
+    elif client_info.client_type == "mistral":
+        payload = {
+            "model": orig_args.model,
+            "messages": messages,
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "max_tokens": max_tokens,
+        }
+    else:
+        raise ValueError("The client type is not supported. You are using Anthropic?")
 
     # Call the API
     try:
@@ -181,18 +181,15 @@ def chat_completion(
         raise RuntimeError(f"Unexpected error in chat completion: {e}") from e
 
     # Parse the response
-    match client_info.client_type:
-        case "openai" | "mistral":  # Chat Completion API
-            response: str = response.choices[0].message.content
-        case "openai-responses":  # Responses API
-            response: str = response.output_text
-        case "ollama":
-            response: str = response.message.content
-        case _:
-            raise ValueError(
-                "The message type is not supported. You are using Anthropic?"
-            )
-    return response
+    if client_info.client_type in ["openai", "mistral"]:  # Chat Completion API
+        result: str = response.choices[0].message.content
+    elif client_info.client_type == "openai-responses":  # Responses API
+        result: str = response.output_text
+    elif client_info.client_type == "ollama":
+        result: str = response.message.content
+    else:
+        raise ValueError("The message type is not supported. You are using Anthropic?")
+    return result
 
 
 def grounding(
@@ -213,7 +210,8 @@ def grounding(
     # prepare the prompt
     system_prompt = "You are a professional image grounding assistant."
     user_prompt = (
-        f"Please locate the item '{item}' in the image accurately. Response in coordinate of the bounding box. "
+        f"Please locate the item '{item}' in the image accurately. "
+        + "Response in coordinate of the bounding box. "
         + "The format is <bbox>x_min y_min x_max y_max</bbox> in percentage(0-1000). "
         + "If there are multiple items, please list all bounding boxes. "
     )
@@ -274,3 +272,63 @@ def grounding(
             )
 
     return bboxes, draw_image
+
+
+def captioning(
+    client_info: ClientInfo,
+    image: Image.Image,
+    language: str = "English",
+    num_max_sentences: int = 10,
+    thinking: Literal["disabled", "enabled"] = "disabled",
+    mode: Literal["minimal", "low", "medium", "high"] = "minimal",
+    unload_after_chat: bool = True,
+) -> str:
+    """
+    Image captioning.
+    """
+
+    # Captioning prompt based on Qwen-Image arxiv paper.
+    # https://arxiv.org/pdf/2508.02324
+    # Figure 12 in Page 13.
+    # Modified by Deepseek-V3.2-Exp to remove unused json format.
+    # Better for using thinking mode with "enabled" and "medium" reasoning_effort.
+    system_prompt = (
+        "As a professional image annotator, "
+        + "your primary task is to generate a detailed and natural caption for the input image, "
+        + "focusing on authenticity and accuracy without any generalizations. "
+        + "Write the caption in descriptive, flowing text, "
+        + "avoiding structured formats or rich text elements. "
+        + "Enrich the description by including specific object attributes, "
+        + "visual relationships between objects, and environmental context "
+        + "to provide a comprehensive view. "
+        + "If any text is visible in the image, identify it exactly as seen "
+        + "and highlight it within the caption using quotation marks, "
+        + "without translating or explaining the content. "
+        + "Ensure all details are grounded in what is actually present, "
+        + "maintaining a truthful representation of the scene. "
+        + "This approach guarantees a clear and informative caption "
+        + "that captures the essence of the image effectively."
+    )
+    user_prompt = (
+        "Here's the user's input. "
+        + f"Please generate a detailed caption for the image in language {language} "
+        + f"with maxium {num_max_sentences} sentences."
+    )
+
+    # prepare the extra parameters
+    extra_parameters = ExtraParameters(thinking=thinking, reasoning_effort=mode)
+
+    # call the API
+    response: str = chat_completion(
+        client_info=client_info,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        images=[image],
+        temperature=1.0,
+        top_p=0.7,
+        max_tokens=4096,
+        unload_after_chat=unload_after_chat,
+        extra_parameters=extra_parameters,
+    )
+
+    return response
