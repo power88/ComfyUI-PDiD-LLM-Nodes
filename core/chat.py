@@ -278,6 +278,7 @@ def captioning(
     client_info: ClientInfo,
     image: Image.Image,
     language: str = "English",
+    num_max_sentences: int = 10,
     thinking: Literal["disabled", "enabled"] = "disabled",
     mode: Literal["minimal", "low", "medium", "high"] = "minimal",
     unload_after_chat: bool = True,
@@ -310,7 +311,8 @@ def captioning(
     )
     user_prompt = (
         "Here's the user's input. "
-        + f"Please generate a detailed caption for the image in language {language}."
+        + f"Please generate a detailed caption for the image in language {language} "
+        + f"with maxium {num_max_sentences} sentences."
     )
 
     # prepare the extra parameters

@@ -356,6 +356,14 @@ class Caption(io.ComfyNode):
                         + "Only Ollama is supported."
                     ),
                 ),
+                io.Int.Input(
+                    "num_max_sentences",
+                    default=10,
+                    min=1,
+                    max=100,
+                    step=1,
+                    tooltip="The maximum number of sentences for the caption. Use 2 for CLIP model. Use 4 for FLUX. Use 10 and more for Qwen-Image.",
+                ),
                 io.Image.Input(
                     "image",
                     tooltip="The image for the LLM model.",
@@ -376,6 +384,7 @@ class Caption(io.ComfyNode):
         cls,
         client_info: ClientInfo,
         language: str,
+        num_max_sentences: int,
         unload_model_after_chat: bool,
         image: Tensor,
         extra_parameters: Optional[ExtraParameters] = None,
@@ -390,6 +399,7 @@ class Caption(io.ComfyNode):
             "language": language,
             "image": pil_image,
             "unload_after_chat": unload_model_after_chat,
+            "num_max_sentences": num_max_sentences,
         }
 
         if extra_parameters is not None:
