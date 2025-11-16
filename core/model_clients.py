@@ -35,7 +35,6 @@ class ClientInfo:
     client_type: Literal["openai", "openai-responses", "ollama", "mistral"]
     chat_func: Callable
     arguments: DetailedArguments
-    message_type: Literal["messages", "input"]
 
 
 def init_client(
@@ -85,7 +84,6 @@ def init_client(
         client_type=client_type,
         chat_func=chat_func,
         arguments=arguments,
-        message_type="input" if "responses" in client_type else "messages",
     )
 
     return result
