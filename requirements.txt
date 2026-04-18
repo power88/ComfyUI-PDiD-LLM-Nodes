@@ -1,4 +1,4 @@
-mistralai
+mistralai<0.5.0
 numpy
 ollama>=0.5.4
 openai
