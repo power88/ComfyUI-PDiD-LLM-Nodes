@@ -450,12 +450,13 @@ class ApplyChatTemplate(io.ComfyNode):
                     optional=True,
                 ),
                 io.String.Input(
-                    "system_prompt", default="You are a helpful assistant."
+                    "system_prompt", default="You are a helpful assistant.", multiline=True
                 ),
-                io.String.Input("user_prompt"),
+                io.String.Input("user_prompt", multiline=True),
                 io.String.Input(
                     "chat_template",
                     tooltip="Put chat template here. Can be found in original repo of model in huggingface.",
+                    multiline=True
                 ),
             ],
             outputs=[
