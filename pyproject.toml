@@ -5,7 +5,7 @@ version = "0.1.5"
 license = {file = "LICENSE"} 
 classifiers = ["Operating System :: OS Independent",]
 
-dependencies = ["mistralai", "numpy", "ollama>=0.5.4", "openai", "pillow", "torch", "pydantic", "anthropic"]
+dependencies = ["mistralai>=2", "numpy", "ollama>=0.5.4", "openai", "pillow", "torch", "pydantic", "anthropic", "jinja2"]
 
 [project.urls]
 Repository = "https://github.com/power88/ComfyUI-PDiD-LLM-Nodes"

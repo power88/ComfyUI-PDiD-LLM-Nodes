@@ -3,10 +3,13 @@ ComfyUI nodes for the LLM.
 Converted to V3 schema
 """
 
+from dataclasses import asdict
 from typing import Literal, Optional
+from datetime import datetime
 from torch import Tensor
 from PIL import Image
 from typing_extensions import override
+from jinja2 import Environment, StrictUndefined
 from comfy_api.latest import ComfyExtension, io
 from .core.chat import chat_completion, grounding, captioning, ExtraParameters
 from .core.utils import tensor_to_pil, pil_to_tensor
@@ -415,6 +418,119 @@ class Caption(io.ComfyNode):
         response = captioning(**payload)
 
         return io.NodeOutput(response)
+
+
+class ApplyChatTemplate(io.ComfyNode):
+    """
+    Apply Chat Template for TextGenerate node. Requires use_default_template closed.
+    """
+
+    @classmethod
+    def define_schema(cls) -> io.Schema:
+        """
+        images: images
+        audio: audio
+        video: video
+        system_prompt: system's prompt
+        user_prompt: user's prompt
+        """
+        return io.Schema(
+            node_id="ApplyChatTemplate",
+            display_name="Apply Chat Template",
+            category="LLM",
+            inputs=[
+                io.Image.Input("image", optional=True),
+                io.Image.Input(
+                    "video", optional=True, tooltip="Video frames as image batch."
+                ),
+                io.Audio.Input("audio", optional=True),
+                io.Custom("EXTRA_PARAMETERS").Input(
+                    "extra_parameters",
+                    tooltip="The extra parameters for the LLM model.",
+                    optional=True,
+                ),
+                io.String.Input(
+                    "system_prompt", default="You are a helpful assistant."
+                ),
+                io.String.Input("user_prompt"),
+                io.String.Input(
+                    "chat_template",
+                    tooltip="Put chat template here. Can be found in original repo of model in huggingface.",
+                ),
+            ],
+            outputs=[
+                io.Image.Output("image"),
+                io.Image.Output("video"),
+                io.Audio.Output("audio"),
+                io.String.Output(display_name="formatted_prompt"),
+            ],
+        )
+
+    @classmethod
+    def execute(
+        cls,
+        system_prompt: str,
+        user_prompt: str,
+        chat_template: str,
+        image: Optional[Tensor] = None,
+        video: Optional[Tensor | list[Tensor]] = None,
+        audio: Optional[dict | list[dict]] = None,
+        extra_parameters: Optional[ExtraParameters] = None,
+    ) -> io.NodeOutput:
+        """
+        Apply Chat Template for TextGenerate node. Requires use_default_template closed.
+        """
+        # Check assets number
+        _num_images = (
+            len([image[i : i + 1] for i in range(image.shape[0])]) if image else 0
+        )
+        _num_video = len(video) if isinstance(video, list) else 1 if video else 0
+        _num_audio = len(audio) if isinstance(audio, list) else 1 if audio else 0
+
+        # Using dummy data here will not affect the actual resource input.
+        _user_contents = (
+            [{"type": "text", "text": user_prompt}]
+            + [
+                {
+                    "type": "image",
+                    "image": f"https://dummy.site/image{i}.png",
+                }
+                for i in range(_num_images)
+            ]
+            + [
+                {
+                    "type": "video",
+                    "image": f"https://dummy.site/video{i}.mp4",
+                }
+                for i in range(_num_video)
+            ]
+            + [
+                {
+                    "type": "audio",
+                    "image": f"https://dummy.site/audio{i}.wav",
+                }
+                for i in range(_num_audio)
+            ]
+        )
+
+        _base_payload = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": _user_contents},
+        ]
+
+        # build up the content by template
+        env = Environment(
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+        template = env.from_string(chat_template)
+
+        extra = asdict(extra_parameters) if extra_parameters else {}
+        _formatted_prompt = template.render(messages=_base_payload, **extra)
+
+        return io.NodeOutput(image, video, audio, _formatted_prompt)
 
 
 class PDIDLLMNodes(ComfyExtension):
