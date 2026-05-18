@@ -482,15 +482,14 @@ class ApplyChatTemplate(io.ComfyNode):
         """
         # Check assets number
         _num_images = (
-            len([image[i : i + 1] for i in range(image.shape[0])]) if image else 0
+            len([image[i : i + 1] for i in range(image.shape[0])]) if image is not None else 0
         )
-        _num_video = len(video) if isinstance(video, list) else 1 if video else 0
-        _num_audio = len(audio) if isinstance(audio, list) else 1 if audio else 0
+        _num_video = len(video) if isinstance(video, list) else 1 if video is not None else 0
+        _num_audio = len(audio) if isinstance(audio, list) else 1 if audio is not None else 0
 
         # Using dummy data here will not affect the actual resource input.
         _user_contents = (
-            [{"type": "text", "text": user_prompt}]
-            + [
+            [
                 {
                     "type": "image",
                     "image": f"https://dummy.site/image{i}.png",
@@ -510,7 +509,8 @@ class ApplyChatTemplate(io.ComfyNode):
                     "image": f"https://dummy.site/audio{i}.wav",
                 }
                 for i in range(_num_audio)
-            ]
+            ] + 
+            [{"type": "text", "text": user_prompt}]
         )
 
         _base_payload = [
@@ -527,8 +527,11 @@ class ApplyChatTemplate(io.ComfyNode):
 
         template = env.from_string(chat_template)
 
-        extra = asdict(extra_parameters) if extra_parameters else {}
-        _formatted_prompt = template.render(messages=_base_payload, **extra)
+        extra = {}
+        if extra_parameters is not None:
+            extra["reasoning_effort"] = extra_parameters.reasoning_effort
+            extra["thinking"] = bool(extra_parameters.thinking == "enabled")
+        _formatted_prompt = template.render(messages=_base_payload, tools=None, add_generation_prompt=True, **extra)
 
         return io.NodeOutput(image, video, audio, _formatted_prompt)
 
