@@ -9,7 +9,7 @@ from typing import Callable, Literal
 from openai import OpenAI
 
 from ollama import Client as Ollama
-from mistralai import Mistral
+from mistralai.client import Mistral
 from anthropic import Anthropic  # type: ignore
 
 
