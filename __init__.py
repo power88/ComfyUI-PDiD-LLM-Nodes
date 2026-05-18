@@ -543,7 +543,7 @@ class PDIDLLMNodes(ComfyExtension):
         """
         Get the list of nodes.
         """
-        return [LLMLoader, ExtraParametersComfy, ChatViaAPI, GenerateBBOX, Caption]
+        return [LLMLoader, ExtraParametersComfy, ChatViaAPI, GenerateBBOX, Caption, ApplyChatTemplate]
 
 
 async def comfy_entrypoint() -> ComfyExtension:
